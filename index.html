@@ -1804,6 +1804,68 @@ O workflow executará emissões de energia em intervalos regulares até a manife
         updateSystemStatus('Configuração carregada do armazenamento');
       }
     }
+        // <!-- NOVO: Função para disparar o workflow via GitHub API -->
+    async function triggerEnergyWorkflow(quantumCode) {
+      const config = getStoredConfig();
+      if (!config.token) {
+        document.getElementById('workflow-status').classList.remove('hidden');
+        document.getElementById('workflow-info').innerHTML = `
+          <div>📋 Configure GitHub para ativação automática</div>
+          <div>🔄 Workflow manual: Execute energização a cada 4 horas</div>
+          <div>⏰ Próxima energização recomendada: ${getNextEnergyTime()}</div>
+        `;
+        return;
+      }
+      try {
+        const response = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/dispatches`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `token ${config.token}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            event_type: 'energize_manifestation',
+            client_payload: {
+              quantum_code: quantumCode,
+              timestamp: Date.now()
+            }
+          })
+        });
+        document.getElementById('workflow-status').classList.remove('hidden');
+        if (response.ok) {
+          document.getElementById('workflow-info').innerHTML = `
+            <div>✅ Workflow de energização ativado</div>
+            <div>🤖 Sistema executará automaticamente</div>
+            <div>⏰ Próxima execução: ${getNextEnergyTime()}</div>
+            <div>🔄 Frequência: A cada 4 horas</div>
+            <div style="color: var(--neon-yellow); margin-top: 10px;">
+              ✨ Ancoragem temporal e reforço de campo morfogenético em operação.
+            </div>
+          `;
+        } else {
+          const errorText = await response.text();
+          throw new Error(`Dispatch failed: ${response.status} - ${errorText}`);
+        }
+      } catch (error) {
+        console.error('Erro ao ativar workflow:', error);
+        document.getElementById('workflow-info').innerHTML = `
+          <div>⚠️ Erro ao ativar workflow: ${error.message}</div>
+          <div>📋 Verifique seu token e permissões no GitHub</div>
+        `;
+      }
+    }
+    // <!-- FIM NOVO -->
+    // <!-- NOVO: Função para gerar chave de criptografia -->
+    function generateEncryptionKey() {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < 32; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+    // <!-- FIM NOVO -->
     function startQuantumAnimation() {
       const background = document.querySelector('.quantum-background');
       if (!background) return;
